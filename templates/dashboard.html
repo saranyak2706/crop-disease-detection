@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Farmer Dashboard</title>
+</head>
+<body>
+
+    <h2>Welcome, {{ session.get('farmer_name') }}!</h2>
+
+    <p>You are successfully logged in.</p>
+
+    <!-- Manage Crops Button -->
+    <a href="{{ url_for('farmer.my_crops') }}">
+        <button type="button">Manage My Crops</button>
+    </a>
+
+    <br><br>
+
+    <!-- Logout Button -->
+    <form method="POST" action="{{ url_for('auth.logout') }}">
+        <button type="submit">Logout</button>
+    </form>
+
+</body>
+</html>
