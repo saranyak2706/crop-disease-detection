@@ -1,25 +1,471 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Farmer Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Dashboard</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f4;
+            color: #333;
+            padding: 25px;
+        }
+
+        .dashboard {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: #216b3a;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+        }
+
+        h2 {
+            color: #216b3a;
+            margin-bottom: 15px;
+        }
+
+        .weather-location-card {
+            margin-top: 20px;
+        }
+
+        .weather-location-card h3 {
+            color: #216b3a;
+            margin-bottom: 12px;
+        }
+
+        .weather-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 22px 0;
+        }
+
+        .weather-item {
+            flex: 1;
+            min-width: 130px;
+            background: #f0f8f1;
+            padding: 18px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .weather-item span {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .weather-item strong {
+            color: #218838;
+            font-size: 25px;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .weather-message {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 12px 0;
+        }
+
+        input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button, .action-link {
+            display: inline-block;
+            padding: 11px 18px;
+            background: #218838;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        button:hover, .action-link:hover {
+            background: #176b2b;
+        }
+
+        .refresh-button {
+            margin: 5px 0 15px;
+        }
+
+        .logout-button {
+            background: #dc3545;
+        }
+
+        .logout-button:hover {
+            background: #b52a37;
+        }
+
+        .flash-message {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+
+        .flash-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .flash-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+
+            .weather-details {
+                flex-direction: column;
+            }
+
+            .header {
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-    <h2>Welcome, {{ session.get('farmer_name') }}!</h2>
+<div class="dashboard">
 
-    <p>You are successfully logged in.</p>
+    <!-- Dashboard Header -->
+    <div class="header">
+        <h1>Your Farm Dashboard</h1>
 
-    <!-- Manage Crops Button -->
-    <a href="{{ url_for('farmer.my_crops') }}">
-        <button type="button">Manage My Crops</button>
+        <form action="{{ url_for('auth.logout') }}" method="POST">
+            <button type="submit" class="logout-button">
+                Logout
+            </button>
+        </form>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash-message {{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- Weather Cards -->
+    <section class="card">
+
+        <h2>Today's Weather</h2>
+
+<!-- Select Farm Location -->
+<form action="{{ url_for('dashboard') }}" method="GET">
+
+    <label for="field_id">Select Farm Location:</label>
+
+    <select
+        name="field_id"
+        id="field_id"
+        onchange="this.form.submit()"
+        style="width:100%; max-width:400px; padding:12px;
+               margin:10px 0; border:1px solid #ccc;
+               border-radius:6px;"
+    >
+
+        {% for field in fields %}
+            <option
+                value="{{ field.id }}"
+                {% if field.id == selected_field_id %}selected{% endif %}
+            >
+                {{ field.location }}
+            </option>
+        {% endfor %}
+
+    </select>
+
+</form>
+        <!-- Manual Weather Refresh -->
+       <form action="{{ url_for('refresh_weather') }}" method="POST">
+
+    <input
+        type="hidden"
+        name="field_id"
+        value="{{ selected_field_id or '' }}"
+    >
+
+    <button type="submit" class="refresh-button">
+        Refresh Weather
+    </button>
+
+</form>
+        {% if not weather_cards %}
+
+            <div class="weather-message">
+                No farm location found. Please add your farm location first.
+            </div>
+
+        {% else %}
+
+            {% for weather_card in weather_cards %}
+
+                <div class="weather-location-card">
+
+                    <h3>{{ weather_card.location }}</h3>
+                    <a href="{{ url_for('farmer.weather_history',
+                    field_id=weather_card.field_id) }}"
+   class="action-link">
+    View Weather History
+</a>
+                     <a href="{{ url_for('farmer.weather_analytics',
+                        field_id=weather_card.field_id) }}"
+       class="action-link">
+        View Weather Analytics
     </a>
 
-    <br><br>
+                    {% if weather_card.status == 'unavailable' %}
 
-    <!-- Logout Button -->
-    <form method="POST" action="{{ url_for('auth.logout') }}">
-        <button type="submit">Logout</button>
-    </form>
+                        <div class="weather-message">
+                            Weather data for {{ weather_card.location }}
+                            is unavailable. Please check back soon.
+                        </div>
+
+                    {% else %}
+
+                        <div class="weather-details">
+
+                            <div class="weather-item">
+                                <span>Temperature</span>
+                                <strong>
+                                    {{ weather_card.temperature }}°C
+                                </strong>
+                            </div>
+
+                            <div class="weather-item">
+                                <span>Humidity</span>
+                                <strong>
+                                    {{ weather_card.humidity }}%
+                                </strong>
+                            </div>
+
+                            <div class="weather-item">
+                                <span>Rain</span>
+                                <strong>
+                                    {{ weather_card.rain }} mm
+                                </strong>
+                            </div>
+
+                        </div>
+
+                        <p class="timestamp">
+                            Last updated:
+                            {{ weather_card.recorded_at.strftime('%Y-%m-%d %H:%M') }}
+                            UTC
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+            {% endfor %}
+
+        {% endif %}
+
+    </section>
+<!-- Soil Health Section -->
+
+<!-- Soil Health Section -->
+<section class="card">
+
+    <h2>Soil Health</h2>
+
+    {% if not soil_cards %}
+
+        <div class="weather-message">
+            Please add a farm location first.
+        </div>
+
+    {% else %}
+
+        {% for soil in soil_cards %}
+
+            <div class="weather-location-card">
+
+                <h3>{{ soil.location }}</h3>
+<a
+    href="{{ url_for('soil.add_soil_reading', field_id=soil.field_id) }}"
+    class="action-link"
+>
+    + Add Soil Reading
+</a>
+<a
+    href="{{ url_for('soil.soil_history', field_id=soil.field_id) }}"
+    class="action-link"
+>
+    View Soil History
+</a>
+                {% if soil.status == 'success' %}
+
+                    <div class="weather-details">
+
+                        <div class="weather-item">
+                            <span>Moisture</span>
+                            <strong>{{ soil.moisture }}%</strong>
+                        </div>
+
+                        <div class="weather-item">
+                            <span>Soil pH</span>
+                            <strong>{{ soil.ph }}</strong>
+                        </div>
+
+                        <div class="weather-item">
+                            <span>Nitrogen (N)</span>
+                            <strong>
+                                {{ soil.nitrogen if soil.nitrogen is not none else 'N/A' }}
+                            </strong>
+                        </div>
+
+                        <div class="weather-item">
+                            <span>Phosphorus (P)</span>
+                            <strong>
+                                {{ soil.phosphorus if soil.phosphorus is not none else 'N/A' }}
+                            </strong>
+                        </div>
+
+                        <div class="weather-item">
+                            <span>Potassium (K)</span>
+                            <strong>
+                                {{ soil.potassium if soil.potassium is not none else 'N/A' }}
+                            </strong>
+                        </div>
+
+                    </div>
+                    {% if soil.sensor_message %}
+    <p class="sensor-status">
+        {{ soil.sensor_message }}
+    </p>
+{% endif %}
+                    <p class="timestamp">
+                        Last updated:
+                        {{ soil.recorded_at.strftime('%Y-%m-%d %H:%M') if soil.recorded_at else 'Unknown' }}
+                        UTC
+                    </p>
+
+                {% elif soil.status == 'disconnected' %}
+
+                    <div class="weather-message">
+                        {{ soil.message }}
+                    </div>
+
+                {% elif soil.status == 'no_data' %}
+
+                    <div class="weather-message">
+                        {{ soil.message }}
+                    </div>
+
+                {% else %}
+
+                    <div class="weather-message">
+                        {{ soil.message }}
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        {% endfor %}
+
+    {% endif %}
+
+</section>
+
+    <!-- Manage Crops -->
+    <section class="card">
+
+        <h2>Crop Management</h2>
+
+        <p>Manage your crops and planting details.</p>
+
+        <br>
+
+        <a href="{{ url_for('farmer.my_crops') }}" class="action-link">
+            Manage My Crops
+        </a>
+
+    </section>
+
+    <!-- Add Farm Location -->
+    <section class="card">
+
+        <h2>Add Farm Location</h2>
+
+        <p>Enter your farm location to save it.</p>
+
+        <form action="{{ url_for('farmer.add_field') }}" method="POST">
+
+            <input
+                type="text"
+                name="location"
+                placeholder="Enter farm location"
+                required
+            >
+
+            <br>
+
+            <button type="submit">
+                Save Location
+            </button>
+
+        </form>
+
+    </section>
+
+</div>
 
 </body>
 </html>

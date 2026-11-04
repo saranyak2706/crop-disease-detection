@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from services.crop_service import add_crop, update_crop, get_farmer_crops,delete_crop
 from models import db, Crop
 from datetime import datetime
+from models import db, Field
+from services.weather_service import get_weather_history
+from services.weather_service import get_weather_analytics
 
 farmer_bp = Blueprint('farmer', __name__, url_prefix='/farmer')
 @farmer_bp.route('/my-crops', methods=['GET'])
@@ -106,3 +109,88 @@ def remove_crop(crop_id):
         "success": success,
         "message": message
     }), (200 if success else 400)
+
+
+@farmer_bp.route('/add-field', methods=['POST'])
+def add_field():
+    if 'farmer_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    location = request.form.get('location', '').strip()
+    farmer_id = session['farmer_id']
+
+    if not location:
+        flash('Please enter your farm location.', 'error')
+        return redirect(url_for('dashboard'))
+
+    try:
+        existing_field = Field.query.filter_by(
+            farmer_id=farmer_id,
+            location=location
+        ).first()
+
+        if existing_field:
+            flash('This farm location is already saved.', 'error')
+            return redirect(url_for('dashboard'))
+
+        field = Field(
+            farmer_id=farmer_id,
+            location=location
+        )
+
+        db.session.add(field)
+        db.session.commit()
+
+        flash('Farm location added successfully!', 'success')
+
+    except Exception:
+        db.session.rollback()
+        flash('Unable to save farm location. Please try again.', 'error')
+
+    return redirect(url_for('dashboard'))
+
+@farmer_bp.route('/weather-history/<int:field_id>')
+def weather_history(field_id):
+
+    if 'farmer_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    field = Field.query.filter_by(
+        id=field_id,
+        farmer_id=session['farmer_id']
+    ).first()
+
+    if not field:
+        flash("Farm location not found.", "error")
+        return redirect(url_for('dashboard'))
+
+    history = get_weather_history(field.id)
+
+    return render_template(
+        'weather_history.html',
+        history=history,
+        field=field
+    )
+
+@farmer_bp.route('/weather-analytics/<int:field_id>')
+def weather_analytics(field_id):
+
+    if 'farmer_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    field = Field.query.filter_by(
+        id=field_id,
+        farmer_id=session['farmer_id']
+    ).first()
+
+    if not field:
+        flash("Farm location not found.", "error")
+        return redirect(url_for('dashboard'))
+
+    analytics = get_weather_analytics(field.id, days=7)
+
+    return render_template(
+        'weather_analytics.html',
+        analytics=analytics,
+        field=field
+    )

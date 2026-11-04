@@ -1,6 +1,6 @@
 
 from flask_sqlalchemy import SQLAlchemy
-
+from sqlalchemy import Float
 db = SQLAlchemy()
 
 
@@ -37,7 +37,11 @@ class Field(db.Model):
     __tablename__ = "fields"
 
     id = db.Column(db.Integer, primary_key=True)
-    farmer_id = db.Column(db.Integer, db.ForeignKey("farmers.id"), nullable=False)
+    farmer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("farmers.id"),
+        nullable=False
+    )
     location = db.Column(db.String(255))
 
 
@@ -84,7 +88,7 @@ class SoilReading(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     field_id = db.Column(db.Integer, db.ForeignKey("fields.id"), nullable=False)
     moisture = db.Column(db.Integer)
-    ph = db.Column(db.Integer)
+    ph = db.Column(Float)
     nutrients = db.Column(db.String(255))
     recorded_at = db.Column(db.DateTime)
 

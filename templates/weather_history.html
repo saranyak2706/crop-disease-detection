@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather History</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f4;
+            padding: 25px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        h1 {
+            color: #216b3a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 13px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #218838;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f0f8f1;
+        }
+
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 11px 18px;
+            background: #218838;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 6px;
+        }
+
+        @media(max-width: 600px) {
+            .container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Weather History</h1>
+
+    <h3>Farm Location: {{ field.location }}</h3>
+
+    {% if history %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Temperature</th>
+                    <th>Humidity</th>
+                    <th>Rainfall</th>
+                    <th>Recorded At (UTC)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for record in history %}
+                    <tr>
+                        <td>{{ record.temperature }}°C</td>
+                        <td>{{ record.humidity }}%</td>
+                        <td>{{ record.rain }} mm</td>
+                        <td>
+                            {{ record.recorded_at.strftime('%d-%m-%Y %H:%M') }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+
+        <div class="message">
+            No weather history available for this location.
+        </div>
+
+    {% endif %}
+
+    <a href="{{ url_for('dashboard') }}" class="back-button">
+        Back to Dashboard
+    </a>
+
+</div>
+
+</body>
+</html>

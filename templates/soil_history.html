@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil Reading History</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f4;
+            color: #333;
+            padding: 25px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .header, .card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+        }
+
+        h1, h2 {
+            color: #216b3a;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #eaf5ec;
+            color: #216b3a;
+        }
+
+        tr:hover {
+            background: #f8fbf8;
+        }
+
+        .empty {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            color: #856404;
+        }
+
+        .action-link {
+            display: inline-block;
+            padding: 10px 16px;
+            background: #218838;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+
+        .action-link:hover {
+            background: #176b2b;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>Soil Reading History</h1>
+        <p class="subtitle">
+            Farm Location: {{ field.location }}
+        </p>
+
+        <a href="{{ url_for('dashboard') }}" class="action-link">
+            Back to Dashboard
+        </a>
+
+        <a href="{{ url_for('soil.add_soil_reading', field_id=field.id) }}"
+           class="action-link">
+            + Add New Reading
+        </a>
+    </div>
+
+    <div class="card">
+        <h2>Last 7 Days</h2>
+
+        {% if readings %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date & Time (UTC)</th>
+                        <th>Moisture (%)</th>
+                        <th>pH</th>
+                        <th>Nitrogen (N)</th>
+                        <th>Phosphorus (P)</th>
+                        <th>Potassium (K)</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for reading in readings %}
+                    {% set nutrients = reading.nutrients | from_json if reading.nutrients else {} %}
+                    <tr>
+                        <td>
+                            {{ reading.recorded_at.strftime('%d-%m-%Y %H:%M') if reading.recorded_at else 'N/A' }}
+                        </td>
+                        <td>{{ reading.moisture if reading.moisture is not none else 'N/A' }}</td>
+                        <td>{{ reading.ph if reading.ph is not none else 'N/A' }}</td>
+                        <td>{{ nutrients.get('nitrogen', 'N/A') }}</td>
+                        <td>{{ nutrients.get('phosphorus', 'N/A') }}</td>
+                        <td>{{ nutrients.get('potassium', 'N/A') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+            <div class="empty">
+                No soil readings found for this location in the last 7 days.
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+</body>
+</html>
